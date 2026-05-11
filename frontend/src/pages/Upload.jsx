@@ -113,7 +113,7 @@ const UploadPage = ({ onAnalyze }) => {
               id="resume"
               className="hidden"
               onChange={(e) => setFile(e.target.files[0])}
-              accept=".pdf"
+              accept=".pdf,.docx"
             />
 
             <label htmlFor="resume" className="cursor-pointer">

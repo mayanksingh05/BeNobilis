@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.parser import extract_text_from_pdf
 from app.services.nlp_engine import extract_skills
 from app.services.scorer import calculate_score
@@ -6,12 +6,54 @@ from app.services.recommender import generate_suggestions
 
 router = APIRouter()
 
+ALLOWED_TYPES = [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+]
+
+MAX_FILE_SIZE = 5 * 1024 * 1024
+
+
 @router.post("/analyze")
 async def analyze_resume(
     resume: UploadFile = File(...),
     job_description: str = Form(...)
 ):
-    resume_text = extract_text_from_pdf(resume.file)
+
+    if resume.content_type not in ALLOWED_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF and DOCX files allowed"
+        )
+
+    content = await resume.read()
+
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail="File size exceeds 5MB limit"
+        )
+
+    suspicious_extensions = [
+        ".exe",
+        ".bat",
+        ".sh",
+        ".js"
+    ]
+
+    for ext in suspicious_extensions:
+        if resume.filename.endswith(ext):
+            raise HTTPException(
+                status_code=400,
+                detail="Suspicious file detected"
+            )
+
+    resume.file.seek(0)
+
+    if resume.content_type == "application/pdf":
+        resume_text = extract_text_from_pdf(resume.file)
+    else:
+        resume_text = "DOCX support coming soon"
 
     resume_skills = extract_skills(resume_text)
     job_skills = extract_skills(job_description)
