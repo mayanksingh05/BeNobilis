@@ -1,32 +1,76 @@
 import React from 'react';
-import { Cpu, LayoutDashboard, UploadCloud, Home } from 'lucide-react';
+import {
+  Cpu,
+  Home,
+  Upload
+} from 'lucide-react';
 
 export const Navbar = ({ onNavigate, activePage }) => {
+
+  const navItems = [
+    {
+      id: 'home',
+      label: 'Home',
+      icon: Home
+    },
+    {
+      id: 'upload',
+      label: 'Analyze',
+      icon: Upload
+    }
+  ];
+
   return (
-    <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 z-50">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
-          <div className="bg-indigo-600 p-1.5 rounded-lg">
-            <Cpu className="text-white w-6 h-6" />
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+
+        <button
+          onClick={() => onNavigate('home')}
+          className="flex items-center gap-3"
+        >
+
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+
+            <Cpu className="text-white" size={26} />
+
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-800">BeNobilis</span>
-        </div>
-        
-        <div className="flex gap-8">
-          <NavItem active={activePage === 'home'} onClick={() => onNavigate('home')} icon={<Home size={18}/>} label="Home" />
-          <NavItem active={activePage === 'upload'} onClick={() => onNavigate('upload')} icon={<UploadCloud size={18}/>} label="Analyze" />
-          <NavItem active={activePage === 'dashboard'} onClick={() => onNavigate('dashboard')} icon={<LayoutDashboard size={18}/>} label="Insights" />
-        </div>
+
+          <span className="font-black text-2xl text-slate-800 tracking-tight">
+            BeNobilis
+          </span>
+
+        </button>
+
+        <nav className="hidden md:flex items-center gap-2">
+
+          {navItems.map((item) => {
+
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  activePage === item.id
+                    ? 'bg-indigo-50 text-indigo-600'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                }`}
+              >
+
+                <Icon size={18} />
+
+                {item.label}
+
+              </button>
+            );
+          })}
+
+        </nav>
+
       </div>
-    </nav>
+
+    </header>
   );
 };
-
-const NavItem = ({ active, onClick, icon, label }) => (
-  <button 
-    onClick={onClick}
-    className={`flex items-center gap-2 text-sm font-medium transition-colors ${active ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
-  >
-    {icon} {label}
-  </button>
-);
