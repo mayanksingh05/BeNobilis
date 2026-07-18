@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+
 from app.services.parser import extract_text_from_pdf
 from app.services.nlp_engine import extract_skills
 from app.services.scorer import calculate_score
@@ -8,7 +9,7 @@ router = APIRouter()
 
 ALLOWED_TYPES = [
     "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]
 
 MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -16,9 +17,12 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 SUSPICIOUS_EXTENSIONS = [
     ".exe",
     ".bat",
-    ".sh",
+    ".cmd",
+    ".com",
+    ".scr",
     ".js",
-    ".msi"
+    ".msi",
+    ".sh",
 ]
 
 
@@ -27,103 +31,175 @@ async def analyze_resume(
     resume: UploadFile = File(...),
     job_description: str = Form(...)
 ):
+    # ----------------------------
+    # Input Validation
+    # ----------------------------
 
     if not resume:
         raise HTTPException(
             status_code=400,
-            detail="Resume file required"
+            detail="Resume file is required."
         )
 
     if not job_description.strip():
         raise HTTPException(
             status_code=400,
-            detail="Job description cannot be empty"
+            detail="Job description cannot be empty."
         )
 
-    if len(job_description) < 30:
+    if len(job_description.strip()) < 30:
         raise HTTPException(
             status_code=400,
-            detail="Job description too short"
+            detail="Job description is too short."
         )
 
     if resume.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=400,
-            detail="Only PDF and DOCX files allowed"
+            detail="Only PDF and DOCX files are supported."
         )
+
+    filename = (resume.filename or "").lower()
 
     for ext in SUSPICIOUS_EXTENSIONS:
-        if resume.filename.lower().endswith(ext):
+        if filename.endswith(ext):
             raise HTTPException(
                 status_code=400,
-                detail="Suspicious file blocked"
+                detail="Suspicious file detected."
             )
 
-    content = await resume.read()
+    file_bytes = await resume.read()
 
-    if len(content) > MAX_FILE_SIZE:
+    if len(file_bytes) == 0:
         raise HTTPException(
             status_code=400,
-            detail="File exceeds 5MB limit"
+            detail="Uploaded file is empty."
         )
 
-    if len(content) == 0:
+    if len(file_bytes) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
-            detail="Empty file uploaded"
+            detail="Maximum file size is 5 MB."
         )
 
+    # Reset pointer after validation
     resume.file.seek(0)
+
+    # ----------------------------
+    # Resume Parsing
+    # ----------------------------
 
     if resume.content_type == "application/pdf":
         resume_text = extract_text_from_pdf(resume.file)
     else:
-        resume_text = "DOCX support coming soon"
-
-    if len(resume_text.strip()) == 0:
         raise HTTPException(
             status_code=400,
-            detail="Unable to extract text from resume"
+            detail="DOCX support will be added soon."
         )
+
+    if not resume_text.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to extract text from the resume."
+        )
+
+    # ----------------------------
+    # Skill Extraction
+    # ----------------------------
 
     resume_skills = extract_skills(resume_text)
     job_skills = extract_skills(job_description)
 
-    score, matched, missing, chart_data = calculate_score(
+    result = calculate_score(
         resume_skills,
-        job_skills
+        job_skills,
+        resume_text
     )
+
+    score = result["ats_score"]
+    matched = result["matched_skills"]
+    missing = result["missing_skills"]
+    extra = result["extra_skills"]
+    coverage = result["coverage"]
+    chart_data = result["chart_data"]
 
     suggestions = generate_suggestions(missing)
 
+    # ----------------------------
+    # Strengths
+    # ----------------------------
+
     strengths = []
 
+    if score >= 80:
+        strengths.append(
+            "Resume has a strong overall match with the job description."
+        )
+
     if len(matched) >= 5:
-        strengths.append("Strong technical skill alignment")
+        strengths.append(
+            "Good alignment with the required technical skills."
+        )
 
     if "react" in matched:
-        strengths.append("Good frontend development skills")
+        strengths.append(
+            "Frontend development skills detected."
+        )
 
     if "python" in matched:
-        strengths.append("Strong backend programming foundation")
+        strengths.append(
+            "Python programming experience detected."
+        )
+
+    # ----------------------------
+    # Weaknesses
+    # ----------------------------
 
     weaknesses = []
 
-    if "aws" in missing:
-        weaknesses.append("Missing cloud platform experience")
+    if score < 50:
+        weaknesses.append(
+            "Resume has a low similarity with the job description."
+        )
 
     if "docker" in missing:
-        weaknesses.append("Containerization knowledge missing")
+        weaknesses.append(
+            "Containerization experience is missing."
+        )
 
-    if len(missing) > 5:
-        weaknesses.append("Large skill gap with job requirements")
+    if "aws" in missing:
+        weaknesses.append(
+            "Cloud platform experience is missing."
+        )
+
+    if len(missing) >= 5:
+        weaknesses.append(
+            "Several important job skills are missing."
+        )
+
+    # ----------------------------
+    # Privacy Cleanup
+    # ----------------------------
+
+    await resume.close()
+
+    del file_bytes
+    del resume_text
+    del resume_skills
+    del job_skills
+
+    # ----------------------------
+    # Response
+    # ----------------------------
 
     return {
         "ats_score": score,
         "matched_skills": matched,
         "missing_skills": missing,
+        "extra_skills": extra,
+        "coverage": coverage,
         "suggestions": suggestions,
         "strengths": strengths,
         "weaknesses": weaknesses,
-        "chart_data": chart_data
+        "chart_data": chart_data,
     }

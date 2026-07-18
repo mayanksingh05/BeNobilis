@@ -1,58 +1,185 @@
 from collections import defaultdict
 
-CATEGORY_MAP = {
-    "react": "Frontend",
-    "html": "Frontend",
-    "css": "Frontend",
-    "javascript": "Frontend",
-    "tailwind css": "Frontend",
+from app.utils.skill_db import (
+    PROGRAMMING_LANGUAGES,
+    FRONTEND,
+    BACKEND,
+    DATABASES,
+    DEVOPS,
+    CLOUD,
+    AI_ML,
+)
 
-    "python": "Backend",
-    "fastapi": "Backend",
-    "flask": "Backend",
-    "node.js": "Backend",
-    "sql": "Backend",
-    "mongodb": "Backend",
-    "rest api": "Backend",
-
-    "aws": "Cloud",
-    "docker": "DevOps",
-    "git": "DevOps",
-
-    "machine learning": "AI/ML",
-    "data analysis": "AI/ML",
+CRITICAL_SKILLS = {
+    "python",
+    "java",
+    "javascript",
+    "typescript",
+    "react",
+    "node.js",
+    "fastapi",
+    "django",
+    "sql",
+    "mongodb",
+    "mysql",
+    "postgresql",
+    "docker",
+    "kubernetes",
+    "aws",
+    "azure",
+    "machine learning",
+    "tensorflow",
+    "pytorch",
 }
 
-def calculate_score(resume_skills, job_skills):
-    matched = list(set(resume_skills) & set(job_skills))
-    missing = list(set(job_skills) - set(resume_skills))
 
-    if len(job_skills) == 0:
-        score = 0
-    else:
-        score = int((len(matched) / len(job_skills)) * 100)
+def get_category(skill: str):
+    if skill in PROGRAMMING_LANGUAGES:
+        return "Programming"
 
-    category_scores = defaultdict(lambda: {"matched": 0, "total": 0})
+    if skill in FRONTEND:
+        return "Frontend"
 
-    for skill in job_skills:
-        category = CATEGORY_MAP.get(skill, "Other")
+    if skill in BACKEND:
+        return "Backend"
 
-        category_scores[category]["total"] += 1
+    if skill in DATABASES:
+        return "Database"
 
-        if skill in matched:
-            category_scores[category]["matched"] += 1
+    if skill in DEVOPS:
+        return "DevOps"
 
-    chart_data = []
+    if skill in CLOUD:
+        return "Cloud"
 
-    for category, values in category_scores.items():
-        total = values["total"]
-        matched_count = values["matched"]
+    if skill in AI_ML:
+        return "AI / ML"
 
-        percentage = int((matched_count / total) * 100)
+    return "Other"
 
-        chart_data.append({
-            "name": category,
-            "score": percentage
-        })
 
-    return score, matched, missing, chart_data
+def calculate_score(resume_skills, job_skills, resume_text):
+
+    resume_set = set(resume_skills)
+    job_set = set(job_skills)
+
+    matched = sorted(resume_set & job_set)
+    missing = sorted(job_set - resume_set)
+    extra = sorted(resume_set - job_set)
+
+    chart_data = defaultdict(lambda: {
+        "matched": 0,
+        "missing": 0,
+        "extra": 0
+    })
+
+    for skill in matched:
+        chart_data[get_category(skill)]["matched"] += 1
+
+    for skill in missing:
+        chart_data[get_category(skill)]["missing"] += 1
+
+    for skill in extra:
+        chart_data[get_category(skill)]["extra"] += 1
+
+    chart_data = [
+        {
+            "category": category,
+            "matched": values["matched"],
+            "missing": values["missing"],
+            "extra": values["extra"]
+        }
+        for category, values in chart_data.items()
+    ]
+
+    coverage = {
+        "matched": len(matched),
+        "missing": len(missing),
+        "extra": len(extra)
+    }
+
+    # -------------------------
+    # ATS Score
+    # -------------------------
+
+    total_required = max(len(job_set), 1)
+
+    # ----------------------------------
+    # ATS Score Calculation
+    # ----------------------------------
+
+    text = resume_text.lower()
+
+    # 75 Marks - Required Skill Match
+    skill_score = (len(matched) / total_required) * 75
+
+    # 10 Marks - Resume Completeness
+    completeness = 0
+
+    if "education" in text:
+        completeness += 2
+
+    if "project" in text:
+        completeness += 3
+
+    if "skill" in text:
+        completeness += 2
+
+    if "experience" in text:
+        completeness += 3
+
+    completeness = min(completeness, 10)
+
+    # 10 Marks - Relevant Projects
+    project_score = 0
+
+    project_keywords = [
+        "react",
+        "fastapi",
+        "python",
+        "api",
+        "rest",
+        "dashboard",
+        "ai",
+        "machine learning",
+        "resume",
+        "file sharing",
+        "web application",
+    ]
+
+    for keyword in project_keywords:
+        if keyword in text:
+            project_score += 1.5
+
+    project_score = min(project_score, 10)
+
+    # 5 Marks - Extra Relevant Skills
+    extra_bonus = min(len(extra), 5)
+
+    # Penalty for missing important skills
+    penalty = 0
+
+    for skill in missing:
+        if skill in CRITICAL_SKILLS:
+            penalty += 2
+
+    penalty = min(penalty, 5)
+
+    ats_score = round(
+        skill_score
+        + completeness
+        + project_score
+        + extra_bonus
+        - penalty
+    )
+
+    ats_score = max(0, min(100, ats_score))
+
+    return {
+        "ats_score": ats_score,
+        "matched_skills": matched,
+        "missing_skills": missing,
+        "extra_skills": extra,
+        "coverage": coverage,
+        "chart_data": chart_data
+    }

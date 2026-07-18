@@ -1,42 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
   PieChart,
   Pie,
-  Legend
+  Cell,
+  ResponsiveContainer
 } from 'recharts';
 
 import {
   CheckCircle2,
   XCircle,
   Lightbulb,
-  TrendingUp,
   RotateCcw,
-  AlertTriangle
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 
-const COLORS = [
-  '#6366f1',
-  '#8b5cf6',
-  '#06b6d4',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#ec4899',
-  '#14b8a6'
-];
+const COLORS = {
+  matched: '#10b981',
+  missing: '#ef4444',
+  extra: '#6366f1',
+};
 
 const Dashboard = ({ data, onReset }) => {
-
-  const [comparisonMode, setComparisonMode] = useState(false);
 
   const getScoreColor = (score) => {
     if (score >= 80) return '#10b981';
@@ -50,23 +36,26 @@ const Dashboard = ({ data, onReset }) => {
     return "Poor Match";
   };
 
-  const allSkills = [
-    ...data.matchedSkills,
-    ...data.missingSkills
+  const coverageData = [
+    {
+      name: "Matched",
+      value: data.matchedSkills.length,
+      color: COLORS.matched
+    },
+    {
+      name: "Missing",
+      value: data.missingSkills.length,
+      color: COLORS.missing
+    },
+    {
+      name: "Extra",
+      value: data.extraSkills.length,
+      color: COLORS.extra
+    }
   ];
 
-  const jobSkillsData = allSkills.map((skill) => ({
-    name: skill,
-    value: 1
-  }));
-
-  const yourSkillsData = allSkills.map((skill) => ({
-    name: skill,
-    value: data.matchedSkills.includes(skill) ? 1 : 0
-  }));
-
   return (
-    <div className="max-w-7xl mx-auto px-6 animate-in fade-in duration-700">
+    <div className="max-w-7xl mx-auto px-6 py-2 animate-in fade-in duration-700">
 
       <div className="flex justify-between items-center mb-8">
 
@@ -76,7 +65,7 @@ const Dashboard = ({ data, onReset }) => {
 
         <button
           onClick={onReset}
-          className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-medium"
+          className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-medium transition"
         >
           <RotateCcw size={18} />
           New Analysis
@@ -84,36 +73,40 @@ const Dashboard = ({ data, onReset }) => {
 
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      {/* Top Cards */}
 
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
 
-          <h3 className="text-slate-500 font-semibold mb-6 uppercase tracking-wider text-xs">
+        {/* ATS Score */}
+
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex flex-col items-center">
+
+          <h3 className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-5">
             Overall ATS Score
           </h3>
 
-          <div className="relative w-48 h-48 flex items-center justify-center">
+          <div className="relative w-44 h-44 flex items-center justify-center">
 
-            <svg className="w-full h-full transform -rotate-90">
+            <svg className="w-full h-full -rotate-90">
 
               <circle
-                cx="96"
-                cy="96"
-                r="88"
+                cx="88"
+                cy="88"
+                r="80"
                 stroke="#f1f5f9"
                 strokeWidth="12"
                 fill="transparent"
               />
 
               <circle
-                cx="96"
-                cy="96"
-                r="88"
+                cx="88"
+                cy="88"
+                r="80"
                 stroke={getScoreColor(data.score)}
                 strokeWidth="12"
                 fill="transparent"
-                strokeDasharray={553}
-                strokeDashoffset={553 - (553 * data.score) / 100}
+                strokeDasharray={503}
+                strokeDashoffset={503 - (503 * data.score) / 100}
                 strokeLinecap="round"
               />
 
@@ -121,12 +114,12 @@ const Dashboard = ({ data, onReset }) => {
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
 
-              <span className="text-5xl font-black text-slate-800">
+              <span className="text-5xl font-black">
                 {data.score}
               </span>
 
-              <span className="text-slate-400 font-medium">
-                / 100
+              <span className="text-slate-400">
+                /100
               </span>
 
             </div>
@@ -134,7 +127,7 @@ const Dashboard = ({ data, onReset }) => {
           </div>
 
           <p
-            className={`mt-6 font-bold flex items-center gap-1 uppercase text-sm ${
+            className={`mt-5 font-bold uppercase text-sm ${
               data.score >= 80
                 ? "text-emerald-600"
                 : data.score >= 50
@@ -142,277 +135,93 @@ const Dashboard = ({ data, onReset }) => {
                 : "text-red-500"
             }`}
           >
-
-            <TrendingUp size={16} />
-
             {getMatchText(data.score)}
-
           </p>
 
-        </div>
+          <div className="mt-5 text-center text-sm text-slate-500">
 
-        <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <p>
+              ✓ {data.matchedSkills.length} Skills Matched
+            </p>
 
-          <div className="flex items-center justify-between mb-6">
-
-            <h3 className="text-slate-800 font-bold">
-              {comparisonMode
-                ? "Skill Comparison"
-                : "Skill Category Analysis"}
-            </h3>
-
-            <button
-              onClick={() => setComparisonMode(!comparisonMode)}
-              className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
-            >
-              {comparisonMode
-                ? "Category View"
-                : "Comparison"}
-            </button>
+            <p>
+              ✗ {data.missingSkills.length} Skills Missing
+            </p>
 
           </div>
 
-          {!comparisonMode ? (
+        </div>
 
-            <div className="h-64 w-full">
+        {/* Resume Coverage */}
 
-              <ResponsiveContainer width="100%" height="100%">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
 
-                <BarChart data={data.chartData}>
+          <div className="flex items-center gap-2 mb-5">
 
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#f1f5f9"
-                  />
+            <Sparkles
+              size={20}
+              className="text-indigo-600"
+            />
 
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                  />
+            <h3 className="font-bold text-slate-800">
+              Resume Coverage
+            </h3>
 
-                  <YAxis hide />
+          </div>
 
-                  <Tooltip />
+          <div className="h-56">
 
-                  <Bar
-                    dataKey="score"
-                    radius={[6, 6, 0, 0]}
-                    barSize={40}
-                  >
+            <ResponsiveContainer width="100%" height="100%">
 
-                    {data.chartData.map((entry, index) => (
+              <PieChart>
 
-                      <Cell
-                        key={index}
-                        fill={
-                          entry.score >= 70
-                            ? '#6366f1'
-                            : '#cbd5e1'
-                        }
-                      />
+                <Pie
+                  data={coverageData}
+                  innerRadius={60}
+                  outerRadius={85}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
 
-                    ))}
+                  {coverageData.map((item) => (
 
-                  </Bar>
-
-                </BarChart>
-
-              </ResponsiveContainer>
-
-            </div>
-
-          ) : (
-
-            <div className="space-y-6">
-
-              <div className="grid md:grid-cols-2 gap-6 h-64">
-
-                <div className="flex flex-col items-center justify-center">
-
-                  <h4 className="font-semibold mb-4 text-slate-700">
-                    Job Required Skills
-                  </h4>
-
-                  <ResponsiveContainer width="100%" height={220}>
-
-                    <PieChart>
-
-                      <Pie
-                        data={jobSkillsData}
-                        dataKey="value"
-                        outerRadius={80}
-                      >
-
-                        {jobSkillsData.map((entry, index) => (
-
-                          <Cell
-                            key={index}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-
-                        ))}
-
-                      </Pie>
-
-                    </PieChart>
-
-                  </ResponsiveContainer>
-
-                </div>
-
-                <div className="flex flex-col items-center justify-center">
-
-                  <h4 className="font-semibold mb-4 text-slate-700">
-                    Your Skills Match
-                  </h4>
-
-                  <ResponsiveContainer width="100%" height={220}>
-
-                    <PieChart>
-
-                      <Pie
-                        data={yourSkillsData}
-                        dataKey="value"
-                        outerRadius={80}
-                      >
-
-                        {yourSkillsData.map((entry, index) => (
-
-                          <Cell
-                            key={index}
-                            fill={
-                              entry.value === 1
-                                ? COLORS[index % COLORS.length]
-                                : '#e2e8f0'
-                            }
-                          />
-
-                        ))}
-
-                      </Pie>
-
-                    </PieChart>
-
-                  </ResponsiveContainer>
-
-                </div>
-
-              </div>
-
-              <div className="flex flex-wrap gap-4 justify-center">
-
-                {allSkills.map((skill, index) => (
-
-                  <div
-                    key={skill}
-                    className="flex items-center gap-2 text-sm"
-                  >
-
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{
-                        backgroundColor:
-                          COLORS[index % COLORS.length]
-                      }}
+                    <Cell
+                      key={item.name}
+                      fill={item.color}
                     />
 
-                    <span className="text-slate-700">
-                      {skill}
-                    </span>
+                  ))}
 
-                  </div>
+                </Pie>
 
-                ))}
+              </PieChart>
 
-              </div>
-
-            </div>
-
-          )}
-
-        </div>
-
-        <div className="lg:col-span-2 space-y-6">
-
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-
-            <h3 className="font-bold mb-4 flex items-center gap-2">
-
-              <CheckCircle2 className="text-emerald-500" />
-
-              Matched Skills
-
-            </h3>
-
-            <div className="flex flex-wrap gap-2">
-
-              {data.matchedSkills.map(skill => (
-
-                <span
-                  key={skill}
-                  className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-sm font-semibold border border-emerald-100"
-                >
-                  {skill}
-                </span>
-
-              ))}
-
-            </div>
+            </ResponsiveContainer>
 
           </div>
 
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+          <div className="grid grid-cols-3 gap-3 mt-1">
 
-            <h3 className="font-bold mb-4 flex items-center gap-2">
-
-              <XCircle className="text-rose-500" />
-
-              Missing Skills
-
-            </h3>
-
-            <div className="flex flex-wrap gap-2">
-
-              {data.missingSkills.map(skill => (
-
-                <span
-                  key={skill}
-                  className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-semibold border border-rose-100"
-                >
-                  {skill}
-                </span>
-
-              ))}
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-
-          <h3 className="font-bold mb-6 flex items-center gap-2 text-slate-800">
-
-            <Lightbulb size={18} />
-
-            Suggestions
-
-          </h3>
-
-          <div className="space-y-4">
-
-            {data.aiSuggestions.map((item, index) => (
+            {coverageData.map((item) => (
 
               <div
-                key={index}
-                className="p-4 rounded-2xl bg-slate-50 border border-slate-200"
+                key={item.name}
+                className="rounded-xl bg-slate-50 p-3 text-center border border-slate-100"
               >
 
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {item}
+                <div
+                  className="w-3 h-3 rounded-full mx-auto mb-2"
+                  style={{
+                    background: item.color
+                  }}
+                />
+
+                <p className="text-xs text-slate-500">
+                  {item.name}
+                </p>
+
+                <p className="text-lg font-bold text-slate-800">
+                  {item.value}
                 </p>
 
               </div>
@@ -423,57 +232,188 @@ const Dashboard = ({ data, onReset }) => {
 
         </div>
 
-        <div className="lg:col-span-3 grid md:grid-cols-2 gap-6">
+      </div>
 
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+      {/* Skills */}
 
-            <h3 className="font-bold mb-4 flex items-center gap-2">
+            <div className="space-y-6">
 
-              <CheckCircle2 className="text-emerald-500" />
+        {/* Matched Skills */}
 
-              Strengths
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
 
-            </h3>
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <CheckCircle2 className="text-emerald-500" />
+            Matched Skills ({data.matchedSkills.length})
+          </h3>
 
-            <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
 
-              {data.strengths.map((item, index) => (
+            {data.matchedSkills.map((skill) => (
 
-                <div
-                  key={index}
-                  className="p-3 rounded-xl bg-emerald-50 text-emerald-700"
-                >
-                  {item}
-                </div>
+              <span
+                key={skill}
+                className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-semibold border border-emerald-100"
+              >
+                {skill}
+              </span>
 
-              ))}
+            ))}
+
+          </div>
+
+        </div>
+
+        {/* Missing Skills */}
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <XCircle className="text-rose-500" />
+            Missing Skills ({data.missingSkills.length})
+          </h3>
+
+          <div className="flex flex-wrap gap-2">
+
+            {data.missingSkills.map((skill) => (
+
+              <span
+                key={skill}
+                className="px-3 py-1.5 bg-rose-50 text-rose-700 rounded-full text-sm font-semibold border border-rose-100"
+              >
+                {skill}
+              </span>
+
+            ))}
+
+          </div>
+
+        </div>
+
+        {/* Extra Skills */}
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <CheckCircle2 className="text-indigo-500" />
+            Extra Skills ({data.extraSkills.length})
+          </h3>
+
+          <div className="flex flex-wrap gap-2">
+
+            {data.extraSkills.map((skill) => (
+
+              <span
+                key={skill}
+                className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold border border-indigo-100"
+              >
+                {skill}
+              </span>
+
+            ))}
+
+          </div>
+
+        </div>
+
+        {/* Bottom Layout */}
+
+        <div className="grid lg:grid-cols-3 gap-6">
+
+          {/* Left Side */}
+
+          <div className="lg:col-span-1 space-y-6">
+
+            {/* Strengths */}
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+
+              <h3 className="font-bold mb-4 flex items-center gap-2">
+
+                <CheckCircle2 className="text-emerald-500" />
+
+                Strengths
+
+              </h3>
+
+              <div className="space-y-2">
+
+                {data.strengths.map((item, index) => (
+
+                  <div
+                    key={index}
+                    className="p-3 rounded-xl bg-emerald-50 text-emerald-700 text-sm"
+                  >
+                    {item}
+                  </div>
+
+                ))}
+
+              </div>
+
+            </div>
+
+            {/* Weak Areas */}
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+
+              <h3 className="font-bold mb-4 flex items-center gap-2">
+
+                <AlertTriangle className="text-amber-500" />
+
+                Weak Areas
+
+              </h3>
+
+              <div className="space-y-2">
+
+                {data.weaknesses.map((item, index) => (
+
+                  <div
+                    key={index}
+                    className="p-3 rounded-xl bg-amber-50 text-amber-700 text-sm"
+                  >
+                    {item}
+                  </div>
+
+                ))}
+
+              </div>
 
             </div>
 
           </div>
 
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+          {/* Right Side */}
 
-            <h3 className="font-bold mb-4 flex items-center gap-2">
+          <div className="lg:col-span-2">
 
-              <AlertTriangle className="text-amber-500" />
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm h-full">
 
-              Weak Areas
+              <h3 className="font-bold mb-5 flex items-center gap-2">
 
-            </h3>
+                <Lightbulb className="text-amber-500" />
 
-            <div className="space-y-3">
+                Priority Improvements
 
-              {data.weaknesses.map((item, index) => (
+              </h3>
 
-                <div
-                  key={index}
-                  className="p-3 rounded-xl bg-amber-50 text-amber-700"
-                >
-                  {item}
-                </div>
+              <div className="space-y-3">
 
-              ))}
+                {data.aiSuggestions.map((item, index) => (
+
+                  <div
+                    key={index}
+                    className="p-4 rounded-2xl bg-slate-50 border border-slate-200"
+                  >
+                    <p className="text-sm leading-6 text-slate-700">
+                      {item}
+                    </p>
+                  </div>
+
+                ))}
+
+              </div>
 
             </div>
 

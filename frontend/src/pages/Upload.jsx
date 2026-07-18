@@ -37,15 +37,19 @@ const UploadPage = ({ onAnalyze }) => {
     }
 
     setIsAnalyzing(true);
+    setStep(0);
+
+    const startTime = Date.now();
 
     let currentStep = 0;
 
     const interval = setInterval(() => {
-      if (currentStep < steps.length - 1) {
-        currentStep++;
+      currentStep++;
+
+      if (currentStep < steps.length) {
         setStep(currentStep);
       }
-    }, 1000);
+    }, 700);
 
     try {
 
@@ -66,10 +70,25 @@ const UploadPage = ({ onAnalyze }) => {
 
       clearInterval(interval);
 
+      // Finish all checklist items
+      setStep(steps.length);
+
+      // Keep popup visible for at least 3 seconds
+      const elapsed = Date.now() - startTime;
+
+      if (elapsed < 2000) {
+        await new Promise(resolve =>
+          setTimeout(resolve, 2000 - elapsed)
+        );
+      }
+
+      setIsAnalyzing(false);
+
       onAnalyze({
         score: data.ats_score,
         matchedSkills: data.matched_skills,
         missingSkills: data.missing_skills,
+        extraSkills: data.extra_skills,
         aiSuggestions: data.suggestions,
         strengths: data.strengths,
         weaknesses: data.weaknesses,
@@ -82,9 +101,9 @@ const UploadPage = ({ onAnalyze }) => {
 
       console.error(error);
 
-      alert("Backend connection failed");
-
       setIsAnalyzing(false);
+
+      alert("Backend connection failed");
     }
   };
 
@@ -209,7 +228,7 @@ const UploadPage = ({ onAnalyze }) => {
                   <div
                     key={i}
                     className={`flex items-center gap-3 text-sm ${
-                      i <= step
+                      i < step
                         ? 'text-slate-900'
                         : 'text-slate-300'
                     }`}
@@ -234,7 +253,7 @@ const UploadPage = ({ onAnalyze }) => {
 
                     <span
                       className={
-                        i === step
+                        i === step && step < steps.length
                           ? "font-bold text-indigo-600"
                           : ""
                       }

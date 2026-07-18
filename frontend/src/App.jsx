@@ -16,7 +16,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100">
+    <div className="min-h-screen bg-[#faf7f2] text-slate-900 font-sans selection:bg-indigo-100">
       <Navbar onNavigate={navigateTo} activePage={currentPage} />
 
       <main className="pt-20 pb-12">
