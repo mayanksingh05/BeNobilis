@@ -1,65 +1,64 @@
+import re
 from collections import defaultdict
+from typing import Dict, Any, List
 
-from app.utils.skill_db import (
-    PROGRAMMING_LANGUAGES,
-    FRONTEND,
-    BACKEND,
-    DATABASES,
-    DEVOPS,
-    CLOUD,
-    AI_ML,
-)
-
-CRITICAL_SKILLS = {
-    "python",
-    "java",
-    "javascript",
-    "typescript",
-    "react",
-    "node.js",
-    "fastapi",
-    "django",
-    "sql",
-    "mongodb",
-    "mysql",
-    "postgresql",
-    "docker",
-    "kubernetes",
-    "aws",
-    "azure",
-    "machine learning",
-    "tensorflow",
-    "pytorch",
-}
+from app.utils.skill_db import get_skill_category, SKILL_ALIASES
+from app.services.ml_scorer import calculate_semantic_similarity
 
 
-def get_category(skill: str):
-    if skill in PROGRAMMING_LANGUAGES:
-        return "Programming"
-
-    if skill in FRONTEND:
-        return "Frontend"
-
-    if skill in BACKEND:
-        return "Backend"
-
-    if skill in DATABASES:
-        return "Database"
-
-    if skill in DEVOPS:
-        return "DevOps"
-
-    if skill in CLOUD:
-        return "Cloud"
-
-    if skill in AI_ML:
-        return "AI / ML"
-
-    return "Other"
+def get_category(skill: str) -> str:
+    """
+    Return human-readable category for any skill out of 17 supported categories.
+    """
+    return get_skill_category(skill)
 
 
-def calculate_score(resume_skills, job_skills, resume_text):
+def detect_sections(text: str) -> Dict[str, bool]:
+    """
+    Detect presence of core resume sections using regex matching on industry synonyms.
+    """
+    t = text.lower()
 
+    experience_detected = bool(re.search(
+        r"(?i)\b(experience|work\s+history|employment|professional\s+background|career\s+history|work\s+experience)\b",
+        t
+    ))
+
+    education_detected = bool(re.search(
+        r"(?i)\b(education|academic|qualifications|degree|degrees|university|college|bachelor|master|phd)\b",
+        t
+    ))
+
+    projects_detected = bool(re.search(
+        r"(?i)\b(projects?|portfolio|key\s+achievements|open\s+source|personal\s+projects)\b",
+        t
+    ))
+
+    skills_detected = bool(re.search(
+        r"(?i)\b(skills?|technical\s+proficiencies|technologies|competencies|tools\s+&\s+technologies|core\s+competencies)\b",
+        t
+    ))
+
+    return {
+        "experience": experience_detected,
+        "education": education_detected,
+        "projects": projects_detected,
+        "skills": skills_detected,
+    }
+
+
+def calculate_score(
+    resume_skills: List[str],
+    job_skills: List[str],
+    resume_text: str,
+    job_description: str = ""
+) -> Dict[str, Any]:
+    """
+    Calculates accurate ATS Score using a calibrated Hybrid ML Architecture:
+    1. Skill Match Score (50 Marks) - Direct coverage of required technical competencies.
+    2. Semantic TF-IDF Score (30 Marks) - Contextual and project alignment via calibrated cosine similarity.
+    3. Structural & Section Completeness (20 Marks) - Professional formatting and section presence.
+    """
     resume_set = set(resume_skills)
     job_set = set(job_skills)
 
@@ -67,30 +66,31 @@ def calculate_score(resume_skills, job_skills, resume_text):
     missing = sorted(job_set - resume_set)
     extra = sorted(resume_set - job_set)
 
-    chart_data = defaultdict(lambda: {
-        "matched": 0,
-        "missing": 0,
-        "extra": 0
-    })
+    # -----------------------------
+    # 1. Category Chart Data (17 Categories)
+    # -----------------------------
+    category_counts = defaultdict(lambda: {"matched": 0, "missing": 0, "extra": 0})
 
     for skill in matched:
-        chart_data[get_category(skill)]["matched"] += 1
+        category_counts[get_category(skill)]["matched"] += 1
 
     for skill in missing:
-        chart_data[get_category(skill)]["missing"] += 1
+        category_counts[get_category(skill)]["missing"] += 1
 
     for skill in extra:
-        chart_data[get_category(skill)]["extra"] += 1
+        category_counts[get_category(skill)]["extra"] += 1
 
     chart_data = [
         {
-            "category": category,
-            "matched": values["matched"],
-            "missing": values["missing"],
-            "extra": values["extra"]
+            "category": cat,
+            "matched": vals["matched"],
+            "missing": vals["missing"],
+            "extra": vals["extra"],
+            "total": vals["matched"] + vals["missing"] + vals["extra"],
         }
-        for category, values in chart_data.items()
+        for cat, vals in category_counts.items()
     ]
+    chart_data.sort(key=lambda x: x["total"], reverse=True)
 
     coverage = {
         "matched": len(matched),
@@ -98,81 +98,57 @@ def calculate_score(resume_skills, job_skills, resume_text):
         "extra": len(extra)
     }
 
-    # -------------------------
-    # ATS Score
-    # -------------------------
+    # -----------------------------
+    # 2. Skill Match Score (50 Marks)
+    # -----------------------------
+    if len(job_set) > 0:
+        skill_score = (len(matched) / len(job_set)) * 50.0
+    else:
+        # Fallback if job description does not specify explicit keywords from DB
+        skill_score = 30.0 if len(matched) > 0 else 15.0
 
-    total_required = max(len(job_set), 1)
+    # Extra skills bonus: up to +3 marks for complementary tech
+    extra_bonus = min(len(extra) * 0.5, 3.0)
 
-    # ----------------------------------
-    # ATS Score Calculation
-    # ----------------------------------
+    # -----------------------------
+    # 3. Semantic TF-IDF ML Score (30 Marks)
+    # -----------------------------
+    if job_description.strip():
+        sem_result = calculate_semantic_similarity(resume_text, job_description)
+        semantic_score = sem_result["semantic_score"]
+        raw_similarity = sem_result["raw_similarity"]
+    else:
+        semantic_score = int(round((len(matched) / max(len(job_set), 1)) * 100))
+        raw_similarity = 0.0
 
-    text = resume_text.lower()
+    semantic_points = (semantic_score / 100.0) * 30.0
 
-    # 75 Marks - Required Skill Match
-    skill_score = (len(matched) / total_required) * 75
-
-    # 10 Marks - Resume Completeness
+    # -----------------------------
+    # 4. Structural Completeness (20 Marks)
+    # -----------------------------
+    sections = detect_sections(resume_text)
     completeness = 0
+    if sections["experience"]:
+        completeness += 6
+    if sections["education"]:
+        completeness += 5
+    if sections["projects"]:
+        completeness += 5
+    if sections["skills"]:
+        completeness += 4
 
-    if "education" in text:
-        completeness += 2
-
-    if "project" in text:
-        completeness += 3
-
-    if "skill" in text:
-        completeness += 2
-
-    if "experience" in text:
-        completeness += 3
-
-    completeness = min(completeness, 10)
-
-    # 10 Marks - Relevant Projects
-    project_score = 0
-
-    project_keywords = [
-        "react",
-        "fastapi",
-        "python",
-        "api",
-        "rest",
-        "dashboard",
-        "ai",
-        "machine learning",
-        "resume",
-        "file sharing",
-        "web application",
-    ]
-
-    for keyword in project_keywords:
-        if keyword in text:
-            project_score += 1.5
-
-    project_score = min(project_score, 10)
-
-    # 5 Marks - Extra Relevant Skills
-    extra_bonus = min(len(extra), 5)
-
-    # Penalty for missing important skills
+    # -----------------------------
+    # 5. Proportional Deficit Penalty
+    # -----------------------------
+    # If the JD specifies at least 3 skills and candidate has less than 35% match, apply penalty
     penalty = 0
+    if len(job_set) >= 3 and len(matched) < len(job_set) * 0.35:
+        penalty = 5
 
-    for skill in missing:
-        if skill in CRITICAL_SKILLS:
-            penalty += 2
-
-    penalty = min(penalty, 5)
-
-    ats_score = round(
-        skill_score
-        + completeness
-        + project_score
-        + extra_bonus
-        - penalty
-    )
-
+    # -----------------------------
+    # 6. Final Calibrated ATS Score
+    # -----------------------------
+    ats_score = round(skill_score + extra_bonus + semantic_points + completeness - penalty)
     ats_score = max(0, min(100, ats_score))
 
     return {
@@ -181,5 +157,8 @@ def calculate_score(resume_skills, job_skills, resume_text):
         "missing_skills": missing,
         "extra_skills": extra,
         "coverage": coverage,
-        "chart_data": chart_data
-    }
+        "chart_data": chart_data,
+        "semantic_score": semantic_score,
+        "raw_similarity": raw_similarity,
+        "sections": sections,
+    }

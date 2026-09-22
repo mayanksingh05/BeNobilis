@@ -80,6 +80,7 @@ FRONTEND = [
 
 BACKEND = [
     "asp.net",
+    ".net",
     "django",
     "express",
     "express.js",
@@ -363,7 +364,7 @@ NETWORKING = [
     "dns",
     "http",
     "https",
-    "ip",
+    "tcp/ip",
     "load balancing",
     "proxy",
     "reverse proxy",
@@ -391,11 +392,26 @@ SKILL_ALIASES = {
     "tailwind": "tailwind css",
     "postgres": "postgresql",
     "postgres sql": "postgresql",
+    "postgre": "postgresql",
+    "psql": "postgresql",
     "mongo": "mongodb",
     "mongo db": "mongodb",
     "js": "javascript",
     "ts": "typescript",
     "py": "python",
+    "golang": "go",
+    "k8s": "kubernetes",
+    "dotnet": ".net",
+    "scikit learn": "scikit-learn",
+    "sklearn": "scikit-learn",
+    "ci cd": "ci/cd",
+    "ci/cd": "ci/cd",
+    "fast api": "fastapi",
+    "spring boot": "spring boot",
+    "tf": "tensorflow",
+    "hugging face": "huggingface",
+    "ms sql": "sql server",
+    "mssql": "sql server",
     "ml": "machine learning",
     "ai": "artificial intelligence",
     "nlp": "natural language processing",
@@ -410,7 +426,13 @@ SKILL_ALIASES = {
     "github actions ci": "github actions",
     "google cloud platform": "google cloud",
     "gcp": "google cloud",
-    "amazon web services": "aws"
+    "amazon web services": "aws",
+    "amazon aws": "aws",
+    "aws cloud": "aws",
+    "azure cloud": "azure",
+    "git hub": "github",
+    "unit tests": "unit testing",
+    "automated testing": "test automation"
 }
 
 # ==========================
@@ -438,3 +460,34 @@ SKILLS_DB = sorted(
         + NETWORKING
     )
 )
+
+CATEGORY_MAP = {
+    "Programming": PROGRAMMING_LANGUAGES,
+    "Frontend": FRONTEND,
+    "Backend": BACKEND,
+    "Database": DATABASES,
+    "DevOps": DEVOPS,
+    "Cloud": CLOUD,
+    "AI / ML": AI_ML,
+    "Data Science": DATA_SCIENCE,
+    "APIs & Services": APIS,
+    "Security": AUTH_SECURITY,
+    "Testing & QA": TESTING,
+    "Mobile": MOBILE,
+    "Version Control": VERSION_CONTROL,
+    "Operating Systems": OPERATING_SYSTEMS,
+    "Developer Tools": TOOLS,
+    "Software Architecture": SOFTWARE_ENGINEERING,
+    "Networking": NETWORKING,
+}
+
+SKILL_TO_CATEGORY = {}
+for category, skills in CATEGORY_MAP.items():
+    for skill in skills:
+        if skill not in SKILL_TO_CATEGORY:
+            SKILL_TO_CATEGORY[skill] = category
+
+def get_skill_category(skill: str) -> str:
+    """Return the 1-of-17 category for any skill with sensible fallback."""
+    canonical = SKILL_ALIASES.get(skill.lower().strip(), skill.lower().strip())
+    return SKILL_TO_CATEGORY.get(canonical, "Other")

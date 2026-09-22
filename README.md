@@ -4,13 +4,12 @@ BeNobilis is an AI-powered ATS resume analyzer built using React and FastAPI.
 
 ## Features
 
-* ATS resume scoring
+* Hybrid ML ATS resume scoring (TF-IDF Cosine Similarity + Skill Match + Structure)
 * Resume vs Job Description comparison
-* Skill category analysis
-* Dynamic charts and visualizations
-* AI-style improvement suggestions
-* PDF resume upload
-* Modern responsive UI
+* 17-Domain Skill Category Breakdown & Visualizations
+* Dynamic suggestions and tailored recommendations
+* PDF and DOCX resume upload (1 KB to 30 MB)
+* Modern responsive UI with Recharts and Framer Motion
 
 ## Tech Stack
 
@@ -26,7 +25,7 @@ BeNobilis is an AI-powered ATS resume analyzer built using React and FastAPI.
 
 * FastAPI
 * Python
-* pdfplumber
+* pdfplumber & python-docx
 * scikit-learn
 * spaCy
 
@@ -37,31 +36,33 @@ backend/ → FastAPI backend
 
 ## Local Setup
 
-### Frontend
+### 1. Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+uvicorn app.main:app --reload
+```
+API runs on `http://localhost:8000`.
+
+### 2. Frontend
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
-### Backend
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+Frontend runs on `http://localhost:5173`.
 
 ## Future Improvements
 
-* OCR support
-* DOCX parsing
-* Real AI recommendations
-* Authentication
-* Resume history
-* Downloadable reports
+* OCR support for scanned/image resumes
+* Authentication & user profiles
+* Resume version history
+* Downloadable PDF reports
 
 ## Author
 
 Mayank Singh
+

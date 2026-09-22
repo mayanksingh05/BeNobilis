@@ -1,113 +1,127 @@
-from app.utils.skill_db import (
-    PROGRAMMING_LANGUAGES,
-    FRONTEND,
-    BACKEND,
-    DATABASES,
-    DEVOPS,
-    CLOUD,
-    AI_ML,
-)
+from typing import List, Dict, Optional
+from app.utils.skill_db import get_skill_category
 
 
-def get_category(skill: str) -> str:
+TEMPLATES = {
+    "Programming": [
+        "Consider adding coursework, certifications, or projects highlighting '{skill}' to strengthen your core coding background.",
+        "Feature any practical applications or repositories involving '{skill}' prominently in your technical skills section.",
+        "Demonstrate how you solved real-world problems using '{skill}' in your project bullet points."
+    ],
+    "Frontend": [
+        "Showcase user-interface or interactive web applications built with '{skill}'.",
+        "Highlight your experience with modern UI/UX patterns using '{skill}'.",
+        "Mention state management or component design involving '{skill}'."
+    ],
+    "Backend": [
+        "Highlight API design, microservices, or server architecture implemented using '{skill}'.",
+        "If you have built backend services or endpoints with '{skill}', specify their throughput or business impact.",
+        "Demonstrate server-side architecture and data flow using '{skill}'."
+    ],
+    "Database": [
+        "Include hands-on experience designing schemas, queries, or indexing in '{skill}'.",
+        "Mention performance optimization or data migrations carried out with '{skill}'.",
+        "Adding practical database projects using '{skill}' will significantly improve alignment."
+    ],
+    "DevOps": [
+        "Highlight CI/CD pipelines, container orchestration, or automation involving '{skill}'.",
+        "Showcase how you automated deployments or monitoring with '{skill}'.",
+        "Demonstrate infrastructure reliability or workflow efficiency achieved through '{skill}'."
+    ],
+    "Cloud": [
+        "Mention any cloud architecture, hosting, or resource management using '{skill}'.",
+        "Highlight cloud security, scaling, or storage services utilized within '{skill}'.",
+        "Add relevant cloud-native deployments using '{skill}' to your experience."
+    ],
+    "AI / ML": [
+        "Highlight machine learning models, feature engineering, or training pipelines built with '{skill}'.",
+        "Mention model metrics (accuracy, latency, F1-score) achieved using '{skill}'.",
+        "Showcase practical AI/ML projects or research utilizing '{skill}'."
+    ],
+    "Data Science": [
+        "Demonstrate data analysis, visualization, or ETL workflows created with '{skill}'.",
+        "Highlight actionable insights derived from data processing using '{skill}'.",
+        "Feature analytics dashboards or statistical modeling involving '{skill}'."
+    ],
+    "APIs & Services": [
+        "Detail web services or third-party integrations developed using '{skill}'.",
+        "Mention API documentation, authentication, or contract testing with '{skill}'.",
+        "Showcase secure, RESTful or event-driven communication utilizing '{skill}'."
+    ],
+    "Security": [
+        "Highlight security audits, encryption, or authentication protocols implemented with '{skill}'.",
+        "Mention compliance, vulnerability prevention, or secure coding practices in '{skill}'.",
+        "Feature experience securing distributed systems against common threats using '{skill}'."
+    ],
+    "Testing & QA": [
+        "Highlight automated test suites, unit tests, or end-to-end testing written using '{skill}'.",
+        "Mention code coverage improvements or bug reduction achieved through '{skill}'.",
+        "Demonstrate quality assurance workflows or regression suites using '{skill}'."
+    ],
+    "Mobile": [
+        "Showcase native or cross-platform mobile apps deployed using '{skill}'.",
+        "Highlight mobile responsiveness, lifecycle management, or store publication using '{skill}'.",
+        "Mention offline storage or push notification systems built with '{skill}'."
+    ],
+    "Version Control": [
+        "Highlight collaboration workflows (feature branching, code reviews, PRs) using '{skill}'.",
+        "Mention repository governance or release management using '{skill}'."
+    ],
+    "Operating Systems": [
+        "Mention system administration, scripting, or environment configuration in '{skill}'.",
+        "Highlight server deployment and CLI proficiency within '{skill}'."
+    ],
+    "Developer Tools": [
+        "Highlight proficiency with modern engineering toolchains like '{skill}'.",
+        "Showcase development speed or debugging efficiency gained through '{skill}'."
+    ],
+    "Software Architecture": [
+        "Detail how you applied '{skill}' to improve system maintainability and scalability.",
+        "Highlight architectural patterns or modular design using '{skill}'."
+    ],
+    "Networking": [
+        "Mention protocol understanding, reverse proxying, or network configurations using '{skill}'.",
+        "Highlight socket programming or low-latency networking with '{skill}'."
+    ],
+    "Other": [
+        "Consider including exposure to '{skill}' if it aligns with your technical background.",
+        "Highlight any hands-on experience involving '{skill}' to better match the job description."
+    ]
+}
+
+
+def generate_suggestions(
+    missing_skills: List[str],
+    sections: Optional[Dict[str, bool]] = None
+) -> List[str]:
     """
-    Return the category of a skill.
+    Generate tailored, natural ATS improvement recommendations
+    based on missing skills across all 17 categories and resume structure.
     """
-
-    if skill in PROGRAMMING_LANGUAGES:
-        return "Programming"
-
-    if skill in FRONTEND:
-        return "Frontend"
-
-    if skill in BACKEND:
-        return "Backend"
-
-    if skill in DATABASES:
-        return "Database"
-
-    if skill in DEVOPS:
-        return "DevOps"
-
-    if skill in CLOUD:
-        return "Cloud"
-
-    if skill in AI_ML:
-        return "AI / ML"
-
-    return "General"
-
-
-def generate_suggestions(missing_skills):
-    """
-    Generate natural ATS recommendations.
-    """
-
-    if not missing_skills:
-        return [
-            "Excellent match! Your resume already aligns well with the job description. Focus on presenting your projects and achievements clearly."
-        ]
-
     suggestions = []
 
-    templates = {
-        "Programming": [
-            "Consider adding experience with '{skill}' if you've used it in projects or coursework.",
-            "Highlight any practical work involving '{skill}' to strengthen your programming profile.",
-            "If you're familiar with '{skill}', make it more visible in your resume."
-        ],
+    # 1. Structural advice if critical resume sections are missing
+    if sections:
+        if not sections.get("projects", True):
+            suggestions.append(
+                "Add a dedicated 'Projects' or 'Portfolio' section showcasing 2-3 key technical builds."
+            )
+        if not sections.get("skills", True):
+            suggestions.append(
+                "Create a distinct 'Technical Skills' section organized by category for faster ATS parsing."
+            )
 
-        "Frontend": [
-            "Showcase projects or practical experience using '{skill}'.",
-            "Adding '{skill}' to relevant project descriptions could improve your match.",
-            "Highlight your frontend work involving '{skill}' where applicable."
-        ],
-
-        "Backend": [
-            "Including backend experience with '{skill}' would strengthen your profile.",
-            "If you've built APIs or applications using '{skill}', be sure to mention them.",
-            "Consider highlighting projects that demonstrate your knowledge of '{skill}'."
-        ],
-
-        "Database": [
-            "Experience with '{skill}' would make your resume more competitive for this role.",
-            "Mention database work involving '{skill}' if applicable.",
-            "Adding projects that use '{skill}' can strengthen your technical profile."
-        ],
-
-        "DevOps": [
-            "Practical exposure to '{skill}' would add value to your resume.",
-            "If you've worked with '{skill}', highlight it in your projects or experience.",
-            "Consider building a small project using '{skill}' to strengthen your profile."
-        ],
-
-        "Cloud": [
-            "Cloud experience with '{skill}' is commonly expected for similar roles.",
-            "Highlight any hands-on work involving '{skill}' if you have it.",
-            "Adding cloud-based projects using '{skill}' can improve your resume."
-        ],
-
-        "AI / ML": [
-            "Mention projects demonstrating your experience with '{skill}'.",
-            "If you've used '{skill}' in machine learning projects, highlight those achievements.",
-            "Adding practical examples involving '{skill}' would strengthen your AI/ML profile."
-        ],
-
-        "General": [
-            "Consider including experience with '{skill}' if it is relevant to your background.",
-            "Highlight any exposure to '{skill}' to better align with the job description.",
-            "Adding examples where you've used '{skill}' can improve your resume."
+    # 2. Skill-specific recommendations
+    if not missing_skills and not suggestions:
+        return [
+            "Excellent match! Your resume already captures the required technical skills. "
+            "Ensure your bullet points quantify your business impact (e.g. percentages, metrics, scale)."
         ]
-    }
 
     for index, skill in enumerate(missing_skills[:5]):
-
-        category = get_category(skill)
-
-        options = templates.get(category, templates["General"])
-
+        category = get_skill_category(skill)
+        options = TEMPLATES.get(category, TEMPLATES["Other"])
         suggestion = options[index % len(options)].format(skill=skill)
-
         suggestions.append(suggestion)
 
-    return suggestions
+    return suggestions

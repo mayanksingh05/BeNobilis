@@ -1,23 +1,26 @@
 # Python
-
-**pycache**/
+__pycache__/
+*.py[cod]
+*$py.class
 *.pyc
 venv/
+.venv/
+env/
 
 # Node
-
 node_modules/
+.npm/
 
 # Build
-
 dist/
 build/
 
-# Env
-
+# Env & Secrets
 .env
+.env.*
+!.env.example
 
 # OS
-
 .DS_Store
 Thumbs.db
+
